@@ -117,7 +117,7 @@ func main() {
 	fmt.Println(time.Since(timeBefore))
 
 	// File output
-	file, err := os.Create("mandelbrot.jpg")
+	file, err := os.Create("mandelbrot.png")
 	if err != nil {
 		log.Fatalf("failed create file: %s", err)
 	}
