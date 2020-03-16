@@ -7,22 +7,9 @@ import (
 	"image/png"
 	"log"
 	"math"
-	"math/cmplx"
 	"os"
 	"time"
 )
-
-func mandelbrotComplex(c complex128, maxIter int) int {
-	z := c
-
-	for i := 0; i <= maxIter; i++ {
-		if cmplx.Abs(z) > 2 {
-			return i
-		}
-		z = cmplx.Pow(z, 2) + c
-	}
-	return 0
-}
 
 func mandelbrot(c complex128, maxIter int) int {
 	ca := real(c)
