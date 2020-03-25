@@ -8,10 +8,12 @@ import (
 	"log"
 	"math"
 	"os"
+	"sync"
 	"time"
 )
 
 func mandelbrot(c complex128, maxIter int) int {
+	// fmt.Println("mandelbrot", c, maxIter)
 	ca := real(c)
 	cb := imag(c)
 	za := ca
@@ -29,6 +31,16 @@ func mandelbrot(c complex128, maxIter int) int {
 		}
 	}
 	return 0
+}
+
+func mandelbrotSequence(c, offset complex128, count, maxIter int) []int {
+	array := make([]int, count)
+	for i := 0; i < count; i++ {
+		val := mandelbrot(c, maxIter)
+		array[i] = val
+		c += offset
+	}
+	return array
 }
 
 func HsvToRgba(H, S, V float64) color.RGBA {
@@ -68,6 +80,7 @@ func HsvToRgba(H, S, V float64) color.RGBA {
 }
 
 func main() {
+
 	ResX := 1080
 	ResY := 1080
 
@@ -88,19 +101,33 @@ func main() {
 	img := image.NewRGBA(image.Rect(0, 0, ResX, ResY))
 
 	Left := float64(real(Pos)) + float64(-ResX/2)*DistPerPixel
-	Top := float64(imag(Pos)) + float64(-ResY/2)*DistPerPixel
+	Top := float64(imag(Pos)) + float64(ResY/2)*DistPerPixel
+	fmt.Println("Left", Left, "Top", Top)
 
 	timeBefore := time.Now()
+	var wg sync.WaitGroup
 	for x := 0; x < ResX; x++ {
 		fmt.Println("x", x)
 		Real := Left + float64(x)*DistPerPixel
-		for y := 0; y < ResY; y++ {
-			Imag := Top + float64(y)*DistPerPixel
-			c := complex(Real, Imag)
-			val := mandelbrot(c, Iterations)
-			img.SetRGBA(x, y, HsvToRgba(float64(val), 1.0, 1.0))
-		}
+		// - Procedural (for each pixel)
+		// for y := 0; y < ResY; y++ {
+		// 	Imag := Top - float64(y)*DistPerPixel
+		// 	c := complex(Real, Imag)
+		// 	val := mandelbrot(c, Iterations)
+		// 	img.SetRGBA(x, y, HsvToRgba(float64(val), 1.0, 1.0))
+		// }
+
+		// - Concurrent (using Goroutines for each column)
+		wg.Add(1)
+		go func(x int) {
+			values := mandelbrotSequence(complex(Real, Top), complex(0, -DistPerPixel), ResY, Iterations)
+			for y := 0; y < ResY; y++ {
+				img.SetRGBA(x, y, HsvToRgba(float64(values[y]), 1.0, 1.0))
+			}
+			wg.Done()
+		}(x)
 	}
+	wg.Wait()
 	fmt.Println(time.Since(timeBefore))
 
 	// File output
